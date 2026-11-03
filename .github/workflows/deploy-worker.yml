@@ -52,7 +52,12 @@ jobs:
       - name: Teste de fumaça
         if: steps.segredos.outputs.ok == 'true'
         run: |
-          sleep 10
-          code=$(curl -s -o /dev/null -w "%{http_code}" https://aflive.com.br/Amigo_secreto_sorteio/)
-          echo "HTTP $code"
-          test "$code" = "200"
+          url=https://aflive.com.br/Amigo_secreto_sorteio/
+          for i in $(seq 1 18); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$url" || true)
+            echo "Tentativa $i: HTTP $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 10
+          done
+          echo "::error::[FLIVE IA] $url não respondeu 200"
+          exit 1
