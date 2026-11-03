@@ -1,0 +1,14 @@
+name = "amigo-secreto-sorteio"
+main = "cloudflare/worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+routes = [
+  { pattern = "aflive.com.br/Amigo_secreto_sorteio*", zone_name = "aflive.com.br" },
+  { pattern = "aflive.com.br/amigo_secreto_sorteio*", zone_name = "aflive.com.br" },
+]
+
+[assets]
+directory = "docs"
+binding = "ASSETS"
+run_worker_first = true

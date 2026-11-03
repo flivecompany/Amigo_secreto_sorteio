@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 resultado/
 participantes.txt
+node_modules/
+.wrangler/
