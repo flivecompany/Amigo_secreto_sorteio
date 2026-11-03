@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Amigo Secreto</title>
+<style>
+  :root {
+    --bg: #faf7f2; --card: #ffffff; --text: #1f1d1a; --muted: #6b655c;
+    --line: #e4ddd2; --accent: #b4232c; --accent-text: #ffffff;
+    --ok: #1e7a46; --err: #b4232c; --field: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17150f; --card: #221f19; --text: #f1ece3; --muted: #a59d90;
+      --line: #3a352c; --accent: #e0545c; --accent-text: #17150f;
+      --ok: #5cc48a; --err: #ff7b82; --field: #1b1914;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17150f; --card: #221f19; --text: #f1ece3; --muted: #a59d90;
+    --line: #3a352c; --accent: #e0545c; --accent-text: #17150f;
+    --ok: #5cc48a; --err: #ff7b82; --field: #1b1914;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 1.75rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  .hint { color: var(--muted); font-size: .875rem; font-weight: 400; }
+  textarea, input[type=text] {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line);
+    border-radius: 8px; background: var(--field); color: var(--text); font: inherit;
+  }
+  textarea { min-height: 160px; resize: vertical; }
+  .field { margin-bottom: 16px; }
+  .check { display: flex; gap: 8px; align-items: center; font-weight: 400; }
+  button, .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 16px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--card); color: var(--text); font: inherit; font-weight: 600;
+    cursor: pointer; text-decoration: none;
+  }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  button.big { width: 100%; padding: 14px; font-size: 1.05rem; }
+  .msg { margin: 12px 0 0; font-weight: 600; }
+  .msg.err { color: var(--err); }
+  .msg.ok { color: var(--ok); }
+  ul.links { list-style: none; padding: 0; margin: 0; }
+  ul.links li {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    padding: 12px 0; border-top: 1px solid var(--line);
+  }
+  ul.links li:first-child { border-top: 0; }
+  ul.links .nome { flex: 1 1 0; min-width: 6ch; font-weight: 600; overflow-wrap: anywhere; }
+  ul.links button, ul.links .btn { padding: 8px 12px; }
+  .warn { border-left: 4px solid var(--accent); }
+  .reveal { text-align: center; }
+  .reveal .amigo { font-size: 2.25rem; font-weight: 800; color: var(--accent); margin: 8px 0 16px; overflow-wrap: anywhere; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <!-- Tela do organizador -->
+  <section id="organizar" hidden>
+    <h1>Amigo Secreto</h1>
+    <p class="sub">Sorteie e envie um link para cada pessoa. Cada link mostra só o amigo daquela pessoa.</p>
+
+    <form id="form" class="card">
+      <div class="field">
+        <label for="grupo">Nome do grupo <span class="hint">(opcional)</span></label>
+        <input id="grupo" type="text" maxlength="60" placeholder="Ex.: Família 2026">
+      </div>
+      <div class="field">
+        <label for="nomes">Participantes <span class="hint">— um nome por linha</span></label>
+        <textarea id="nomes" placeholder="Ana&#10;Bruno&#10;Carla&#10;Diego"></textarea>
+      </div>
+      <div class="field">
+        <label for="exclusoes">Quem não pode tirar quem <span class="hint">— opcional, um par por linha: Ana, Bruno</span></label>
+        <textarea id="exclusoes" style="min-height:80px" placeholder="Ana, Bruno"></textarea>
+      </div>
+      <div class="field">
+        <label class="check"><input id="pares" type="checkbox"> Permitir par mútuo (A tira B e B tira A)</label>
+      </div>
+      <button class="primary big" type="submit">Sortear</button>
+      <p id="erro" class="msg err" role="alert" hidden></p>
+    </form>
+
+    <div id="resultado" hidden>
+      <div class="card warn">
+        <strong>Não abra os links dos outros.</strong>
+        Quem abre um link vê o resultado daquela pessoa. Envie cada link só para o dono dele.
+      </div>
+      <div class="card">
+        <ul id="links" class="links"></ul>
+        <p id="copiado" class="msg ok" aria-live="polite"></p>
+      </div>
+      <button id="novo" type="button">Fazer novo sorteio</button>
+    </div>
+  </section>
+
+  <!-- Tela do participante -->
+  <section id="participante" class="reveal" hidden>
+    <h1 id="grupoTitulo">Amigo Secreto</h1>
+    <div class="card">
+      <p id="ola" style="font-size:1.25rem;margin-top:0"></p>
+      <div id="escondido">
+        <p class="sub">Confira se ninguém está olhando sua tela.</p>
+        <button id="revelar" class="primary big" type="button">Ver meu amigo secreto</button>
+      </div>
+      <div id="revelado" hidden>
+        <p class="sub" style="margin-bottom:0">Seu amigo secreto é:</p>
+        <p id="amigo" class="amigo"></p>
+        <button id="esconder" type="button">Esconder</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="invalido" hidden>
+    <h1>Link inválido</h1>
+    <div class="card">Este link está incompleto ou foi alterado. Peça um novo link ao organizador.</div>
+  </section>
+</main>
+
+<script type="module">
+import { sortear, codificar, decodificar, ErroSorteio } from "./sorteio.js";
+
+const $ = (id) => document.getElementById(id);
+const base = location.origin + location.pathname;
+
+function mostrar(id) {
+  for (const s of ["organizar", "participante", "invalido"]) $(s).hidden = s !== id;
+}
+
+function telaParticipante(dados) {
+  mostrar("participante");
+  if (dados.g) { $("grupoTitulo").textContent = dados.g; document.title = dados.g; }
+  $("ola").textContent = `Olá, ${dados.n}!`;
+  $("amigo").textContent = dados.a;
+  $("revelar").onclick = () => { $("escondido").hidden = true; $("revelado").hidden = false; };
+  $("esconder").onclick = () => { $("escondido").hidden = false; $("revelado").hidden = true; };
+}
+
+function lerExclusoes(texto) {
+  return texto.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => {
+    const partes = l.split(",").map((p) => p.trim());
+    if (partes.length !== 2 || !partes[0] || !partes[1]) {
+      throw new ErroSorteio(`Exclusão inválida: "${l}". Use o formato: Ana, Bruno`);
+    }
+    return partes;
+  });
+}
+
+async function copiar(texto, nome) {
+  try {
+    await navigator.clipboard.writeText(texto);
+    $("copiado").textContent = `Link de ${nome} copiado.`;
+  } catch {
+    prompt(`Copie o link de ${nome}:`, texto);
+  }
+}
+
+function telaOrganizador() {
+  mostrar("organizar");
+  $("form").onsubmit = (ev) => {
+    ev.preventDefault();
+    $("erro").hidden = true;
+    try {
+      const nomes = $("nomes").value.split("\n").map((l) => l.trim()).filter(Boolean);
+      const grupo = $("grupo").value.trim();
+      const pares = sortear(nomes, {
+        permitirParesMutuos: $("pares").checked,
+        exclusoes: lerExclusoes($("exclusoes").value),
+      });
+      const lista = $("links");
+      lista.replaceChildren();
+      for (const [nome, amigo] of pares) {
+        const dados = { n: nome, a: amigo };
+        if (grupo) dados.g = grupo;
+        const link = `${base}#${codificar(dados)}`;
+        const texto = `Olá, ${nome}! Seu link do amigo secreto${grupo ? ` (${grupo})` : ""}: ${link}`;
+
+        const li = document.createElement("li");
+        const span = document.createElement("span");
+        span.className = "nome"; span.textContent = nome;
+        const bCopiar = document.createElement("button");
+        bCopiar.type = "button"; bCopiar.textContent = "Copiar link";
+        bCopiar.onclick = () => copiar(link, nome);
+        const aZap = document.createElement("a");
+        aZap.className = "btn"; aZap.textContent = "WhatsApp";
+        aZap.href = `https://wa.me/?text=${encodeURIComponent(texto)}`;
+        aZap.target = "_blank"; aZap.rel = "noopener noreferrer";
+        li.append(span, bCopiar, aZap);
+        lista.append(li);
+      }
+      $("form").hidden = true;
+      $("resultado").hidden = false;
+    } catch (e) {
+      $("erro").textContent = e instanceof ErroSorteio ? e.message : "Erro inesperado.";
+      $("erro").hidden = false;
+      if (!(e instanceof ErroSorteio)) console.error(e);
+    }
+  };
+  $("novo").onclick = () => {
+    if (!confirm("Um novo sorteio invalida os links já enviados. Continuar?")) return;
+    $("links").replaceChildren(); $("copiado").textContent = "";
+    $("resultado").hidden = true; $("form").hidden = false;
+  };
+}
+
+const hash = location.hash.slice(1);
+if (hash) {
+  try { telaParticipante(decodificar(hash)); } catch { mostrar("invalido"); }
+} else {
+  telaOrganizador();
+}
+</script>
+</body>
+</html>

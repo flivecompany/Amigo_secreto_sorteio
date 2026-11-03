@@ -43,10 +43,26 @@ python3 amigo_secreto.py -a participantes.txt --pasta resultado
 Cada pessoa vê só o próprio resultado.
 O script limpa a tela e o histórico de rolagem após cada pessoa.
 
+## Versão web (links por pessoa)
+
+A pasta `docs/` tem uma página que não precisa de servidor.
+1. Abra a página e digite os nomes.
+2. Clique em **Sortear**.
+3. Envie cada link só para o dono dele (botão **WhatsApp** ou **Copiar link**).
+
+Cada link carrega só o resultado daquela pessoa, depois do `#`.
+O que vem depois do `#` não é enviado ao servidor.
+
+**Limite:** quem abre um link vê o resultado daquela pessoa. Isso inclui o organizador.
+
 ## Testes
 
 ```bash
 python3 -m unittest -v
+```
+
+```bash
+node --test tests/sorteio.test.mjs
 ```
 
 ## Origem
