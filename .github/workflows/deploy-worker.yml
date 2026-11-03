@@ -1,0 +1,58 @@
+name: Publicar Worker (aflive.com.br)
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "docs/**"
+      - "cloudflare/**"
+      - "wrangler.toml"
+      - ".github/workflows/deploy-worker.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-worker
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Testes do sorteio (JS)
+        run: node --test tests/sorteio.test.mjs
+
+      - name: Testes do sorteio (Python)
+        run: python3 -m unittest -v
+
+      - name: Verificar segredos
+        id: segredos
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::warning::[FLIVE IA] Segredo CLOUDFLARE_API_TOKEN ausente. Deploy pulado."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy no Cloudflare
+        if: steps.segredos.outputs.ok == 'true'
+        run: npx --yes wrangler@4 deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Teste de fumaça
+        if: steps.segredos.outputs.ok == 'true'
+        run: |
+          sleep 10
+          code=$(curl -s -o /dev/null -w "%{http_code}" https://aflive.com.br/Amigo_secreto_sorteio/)
+          echo "HTTP $code"
+          test "$code" = "200"
