@@ -2,7 +2,7 @@ name: Publicar Worker (aflive.com.br)
 
 on:
   push:
-    branches: ["**"]
+    branches: ["claude/bold-euler-054380"] # [FLIVE IA] só a branch padrão publica
     paths:
       - "docs/**"
       - "cloudflare/**"
@@ -34,8 +34,13 @@ jobs:
         id: segredos
         env:
           TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          REF: ${{ github.ref_name }}
+          PADRAO: ${{ github.event.repository.default_branch }}
         run: |
-          if [ -z "$TOKEN" ]; then
+          if [ "$REF" != "$PADRAO" ]; then
+            echo "::warning::[FLIVE IA] Branch $REF não é a padrão ($PADRAO). Deploy pulado."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          elif [ -z "$TOKEN" ]; then
             echo "::warning::[FLIVE IA] Segredo CLOUDFLARE_API_TOKEN ausente. Deploy pulado."
             echo "ok=false" >> "$GITHUB_OUTPUT"
           else
